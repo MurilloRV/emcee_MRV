@@ -578,12 +578,20 @@ class EnsembleSampler(object):
     @deprecated("get_autocorr_time")
     def acor(self):  # pragma: no cover
         return self.get_autocorr_time()
-
+    
+    def get_chain_full(self, **kwargs):
+        """ New command to get the full chain """
+        return self.get_value("chain_full", **kwargs)
+    
     def get_chain(self, **kwargs):
         return self.get_value("chain", **kwargs)
 
     get_chain.__doc__ = Backend.get_chain.__doc__
 
+    def get_blobs_full(self, **kwargs):
+        """ New command to get the blobs from the full chain """
+        return self.get_value("blobs_full", **kwargs)
+    
     def get_blobs(self, **kwargs):
         return self.get_value("blobs", **kwargs)
 
@@ -591,6 +599,10 @@ class EnsembleSampler(object):
 
     def get_log_prob(self, **kwargs):
         return self.get_value("log_prob", **kwargs)
+    
+    def get_log_prob_full(self, **kwargs):
+        """ New command to get the log-likelihoods from the full chain """
+        return self.get_value("log_prob_full", **kwargs)
 
     get_log_prob.__doc__ = Backend.get_log_prob.__doc__
 
