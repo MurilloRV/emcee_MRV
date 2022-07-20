@@ -62,4 +62,4 @@ class MHMove(Move):
         new_state = State(q, log_prob=new_log_probs, blobs=new_blobs)
         state = self.update(state, new_state, accepted)
 
-        return state, accepted
+        return state, accepted, new_state
