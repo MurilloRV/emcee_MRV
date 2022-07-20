@@ -30,10 +30,14 @@ class Backend(object):
         self.iteration = 0
         self.accepted = np.zeros(self.nwalkers, dtype=self.dtype)
         self.chain = np.empty((0, self.nwalkers, self.ndim), dtype=self.dtype)
+        self.chain_full = np.empty((0, self.nwalkers, self.ndim), dtype=self.dtype)
         self.log_prob = np.empty((0, self.nwalkers), dtype=self.dtype)
+        self.log_prob_full = np.empty((0, self.nwalkers), dtype=self.dtype)
         self.blobs = None
+        self.blobs_full = None
         self.random_state = None
         self.initialized = True
+        # _full variables include all proposed values for the walkers, not just accepted ones
 
     def has_blobs(self):
         """Returns ``True`` if the model includes blobs"""
@@ -174,8 +178,10 @@ class Backend(object):
         i = ngrow - (len(self.chain) - self.iteration)
         a = np.empty((i, self.nwalkers, self.ndim), dtype=self.dtype)
         self.chain = np.concatenate((self.chain, a), axis=0)
+        self.chain_full = np.concatenate((self.chain_full, a), axis=0)
         a = np.empty((i, self.nwalkers), dtype=self.dtype)
         self.log_prob = np.concatenate((self.log_prob, a), axis=0)
+        self.log_prob_full = np.concatenate((self.log_prob_full, a), axis=0)
         if blobs is not None:
             dt = np.dtype((blobs.dtype, blobs.shape[1:]))
             a = np.empty((i, self.nwalkers), dtype=dt)
@@ -183,6 +189,7 @@ class Backend(object):
                 self.blobs = a
             else:
                 self.blobs = np.concatenate((self.blobs, a), axis=0)
+                self.blobs_full = np.concatenate((self.blobs_full, a), axis=0)
 
     def _check(self, state, accepted):
         self._check_blobs(state.blobs)
@@ -211,7 +218,7 @@ class Backend(object):
                 "invalid acceptance size; expected {0}".format(nwalkers)
             )
 
-    def save_step(self, state, accepted):
+    def save_step(self, state, accepted, new_state):
         """Save a step to the backend
 
         Args:
@@ -221,11 +228,15 @@ class Backend(object):
 
         """
         self._check(state, accepted)
+        self._check(state_new, accepted)
 
         self.chain[self.iteration, :, :] = state.coords
+        self.chain_full[self.iteration, :, :] = new_state.coords
         self.log_prob[self.iteration, :] = state.log_prob
+        self.log_prob_full[self.iteration, :] = new_state.log_prob
         if state.blobs is not None:
             self.blobs[self.iteration, :] = state.blobs
+            self.blobs_full[self.iteration, :] = new_state.blobs
         self.accepted += accepted
         self.random_state = state.random_state
         self.iteration += 1
