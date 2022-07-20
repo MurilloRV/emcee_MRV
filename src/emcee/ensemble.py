@@ -399,7 +399,7 @@ class EnsembleSampler(object):
                     move = self._random.choice(self._moves, p=self._weights)
 
                     # Propose
-                    state, accepted = move.propose(model, state)
+                    state, accepted, new_state = move.propose(model, state)
                     state.random_state = self.random_state
 
                     if tune:
