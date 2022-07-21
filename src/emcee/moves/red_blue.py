@@ -111,6 +111,7 @@ class RedBlueMove(Move):
             print(f'shape of new_log_probs = {new_log_probs.shape}')
             print(f'type of new_blobs = {type(new_blobs)}')
             print(f'shape of new_blobs = {new_blobs.shape}')
+            print(f'blobs = {new_blobs}')
 
             # Loop over the walkers and update them accordingly.
             for i, (j, f, nlp) in enumerate(
