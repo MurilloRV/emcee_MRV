@@ -228,7 +228,7 @@ class Backend(object):
 
         """
         self._check(state, accepted)
-        self._check(state_new, accepted)
+        self._check(new_state, accepted)
 
         self.chain[self.iteration, :, :] = state.coords
         self.chain_full[self.iteration, :, :] = new_state.coords
