@@ -140,4 +140,8 @@ class RedBlueMove(Move):
         
         new_state = State(q_full, log_prob=new_log_probs_full, blobs=new_blobs_full)
         print(f'Are the two different ways to get the full state equivalent: {new_state==new_state_prime}')
+        print(f'Are the two q equivalent: {new_state.coords==new_state_prime.coords}')
+        print(f'Are the two LLI equivalent: {new_state.log_prob==new_state_prime.log_prob}')
+        print(f'Are the two blobs equivalent: {new_state.blobs==new_state_prime.blobs}')
+        print(f'Are the two random states equivalent: {new_state.random_state==new_state_prime.random_state}')
         return state, accepted, new_state
