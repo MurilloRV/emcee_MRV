@@ -88,6 +88,7 @@ class RedBlueMove(Move):
 
             # Get the move-specific proposal.
             q, factors = self.get_proposal(s, c, model.random)
+            print(f'q = {q}, factors = {factors}') #flag
 
             # Compute the lnprobs of the proposed position.
             new_log_probs, new_blobs = model.compute_log_prob_fn(q)
