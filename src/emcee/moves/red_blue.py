@@ -92,7 +92,7 @@ class RedBlueMove(Move):
             q, factors = self.get_proposal(s, c, model.random)
             print(f'q = {q}, factors = {factors}') #flag
             print(f'type of q = {type(q)}')
-            print(f'shape of q = {shape(q)}')
+            print(f'shape of q = {q.shape}')
             
             q_full[S1, :] = q
 
