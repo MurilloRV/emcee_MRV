@@ -128,5 +128,9 @@ class RedBlueMove(Move):
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
             state = self.update(state, new_state_prelim, accepted, S1)
         
+        print(f'q_full = {q_full}')
+        print(f'new_log_probs_full = {new_log_probs_full}')
+        print(f'new_blobs_full = {new_blobs_full}')
+        
         new_state = State(q_full, log_prob=new_log_probs_full, blobs=new_blobs_full)
         return state, accepted, new_state
