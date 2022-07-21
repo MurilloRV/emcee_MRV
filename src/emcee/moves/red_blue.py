@@ -107,8 +107,8 @@ class RedBlueMove(Move):
                 if lnpdiff > np.log(model.random.rand()):
                     accepted[j] = True
 
-            
-            state = self.update(state, new_state, accepted, S1)
+            new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
+            state = self.update(state, new_state_prelim, accepted, S1)
         
         new_state = State(q_full, log_prob=new_log_probs, blobs=new_blobs)
         return state, accepted, new_state
