@@ -94,10 +94,16 @@ class RedBlueMove(Move):
             print(f'type of q = {type(q)}')
             print(f'shape of q = {q.shape}')
             
+            
             q_full[S1, :] = q
 
             # Compute the lnprobs of the proposed position.
             new_log_probs, new_blobs = model.compute_log_prob_fn(q)
+            
+            print(f'type of new_log_probs = {type(new_log_probs)}')
+            print(f'shape of new_log_probs = {new_log_probs.shape}')
+            print(f'type of new_blobs = {type(new_blobs)}')
+            print(f'shape of new_blobs = {new_blobs.shape}')
 
             # Loop over the walkers and update them accordingly.
             for i, (j, f, nlp) in enumerate(
