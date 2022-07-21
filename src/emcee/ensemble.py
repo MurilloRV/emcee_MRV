@@ -407,7 +407,7 @@ class EnsembleSampler(object):
 
                     # Save the new step
                     if store and (i + 1) % checkpoint_step == 0:
-                        print(f'Shape of new_state: {new_state.coords.shape}') #Flag
+                        #print(f'Shape of new_state: {new_state.coords.shape}') #Flag
                         self.backend.save_step(state, accepted, new_state)
                         # Now sending the new/full state to the save_step function in the backend, to save the full chain
 
