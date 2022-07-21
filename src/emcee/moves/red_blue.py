@@ -79,7 +79,7 @@ class RedBlueMove(Move):
         if self.randomize_split:
             model.random.shuffle(inds)
             
-        q = 
+        
         for split in range(self.nsplits):
             S1 = inds == split
 
