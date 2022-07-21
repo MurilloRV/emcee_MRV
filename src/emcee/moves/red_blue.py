@@ -78,6 +78,8 @@ class RedBlueMove(Move):
         inds = all_inds % self.nsplits
         if self.randomize_split:
             model.random.shuffle(inds)
+            
+        q = 
         for split in range(self.nsplits):
             S1 = inds == split
 
@@ -89,6 +91,7 @@ class RedBlueMove(Move):
             # Get the move-specific proposal.
             q, factors = self.get_proposal(s, c, model.random)
             print(f'q = {q}, factors = {factors}') #flag
+            print(f'type of q = {type(q)}')
 
             # Compute the lnprobs of the proposed position.
             new_log_probs, new_blobs = model.compute_log_prob_fn(q)
@@ -101,7 +104,8 @@ class RedBlueMove(Move):
                 if lnpdiff > np.log(model.random.rand()):
                     accepted[j] = True
 
-            new_state = State(q, log_prob=new_log_probs, blobs=new_blobs)
+            
             state = self.update(state, new_state, accepted, S1)
-
+        
+        new_state = State(q, log_prob=new_log_probs, blobs=new_blobs)
         return state, accepted, new_state
