@@ -241,6 +241,9 @@ class Backend(object):
         self.accepted += accepted
         self.random_state = state.random_state
         self.iteration += 1
+        
+        print(f'blobs = {self.blobs}')
+        print(f'blobs_full = {self.blobs_full}')
 
     def __enter__(self):
         return self
