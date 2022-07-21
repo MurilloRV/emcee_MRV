@@ -79,7 +79,11 @@ class RedBlueMove(Move):
         if self.randomize_split:
             model.random.shuffle(inds)
             
+        # Initializing the variables which will contain the full state information, without discarding proposals
         q_full = np.empty([nwalkers, ndim])
+        new_log_probs_full = np.empty([nwalkers])
+        new_blobs_full = np.empty([nwalkers])
+        
         for split in range(self.nsplits):
             S1 = inds == split
 
@@ -100,6 +104,9 @@ class RedBlueMove(Move):
             # Compute the lnprobs of the proposed position.
             new_log_probs, new_blobs = model.compute_log_prob_fn(q)
             
+            new_log_probs_full[S1] = new_log_probs
+            new_blobs_full[S1] = new_blobs
+            
             print(f'type of new_log_probs = {type(new_log_probs)}')
             print(f'shape of new_log_probs = {new_log_probs.shape}')
             print(f'type of new_blobs = {type(new_blobs)}')
@@ -116,5 +123,5 @@ class RedBlueMove(Move):
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
             state = self.update(state, new_state_prelim, accepted, S1)
         
-        new_state = State(q_full, log_prob=new_log_probs, blobs=new_blobs)
+        new_state = State(q_full, log_prob=new_log_probs_full, blobs=new_blobs_full)
         return state, accepted, new_state
