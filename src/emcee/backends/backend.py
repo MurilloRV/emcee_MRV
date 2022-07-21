@@ -187,6 +187,7 @@ class Backend(object):
             a = np.empty((i, self.nwalkers), dtype=dt)
             if self.blobs is None:
                 self.blobs = a
+                self.blobs_full = a
             else:
                 self.blobs = np.concatenate((self.blobs, a), axis=0)
                 self.blobs_full = np.concatenate((self.blobs_full, a), axis=0)
