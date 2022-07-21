@@ -82,7 +82,7 @@ class RedBlueMove(Move):
         # Initializing the variables which will contain the full state information, without discarding proposals
         q_full = np.empty([nwalkers, ndim])
         new_log_probs_full = np.empty([nwalkers])
-        new_blobs_full = np.empty([nwalkers])
+        new_blobs_full = state.blobs
         
         for split in range(self.nsplits):
             S1 = inds == split
@@ -111,6 +111,7 @@ class RedBlueMove(Move):
             print(f'blobs = {new_blobs}')
             
             new_log_probs_full[S1] = new_log_probs
+            
             new_blobs_full[S1] = new_blobs
             
             
