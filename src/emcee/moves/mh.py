@@ -45,8 +45,6 @@ class MHMove(Move):
         """
         # Check to make sure that the dimensions match.
         nwalkers, ndim = state.coords.shape
-        print(f'nwalkers, ndim = {nwalkers}, {ndim}')
-        print(f'self.dim = {self.ndim}')
         if self.ndim is not None and self.ndim != ndim:
             raise ValueError("Dimension mismatch in proposal")
 
