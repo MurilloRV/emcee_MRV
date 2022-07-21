@@ -74,6 +74,7 @@ class RedBlueMove(Move):
 
         # Split the ensemble in half and iterate over these two halves.
         accepted = np.zeros(nwalkers, dtype=bool)
+        accepted_full = np.ones(nwalkers, dtype=bool) #boolean vector, where all walkers are accepted
         all_inds = np.arange(nwalkers)
         inds = all_inds % self.nsplits
         if self.randomize_split:
@@ -127,10 +128,16 @@ class RedBlueMove(Move):
 
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
             state = self.update(state, new_state_prelim, accepted, S1)
+            
+            new_state_prime = self.update(state, new_state_prelim, accepted_full, S1)
         
         print(f'q_full = {q_full}')
+        print(f'new_state_prime = {new_state_prime.coords}')
         print(f'new_log_probs_full = {new_log_probs_full}')
+        print(f'new_state_prime_log = {new_state_prime.log_prob}')
         print(f'new_blobs_full = {new_blobs_full}')
+        print(f'new_state_prime_blobs = {new_state_prime.blobs}')
         
         new_state = State(q_full, log_prob=new_log_probs_full, blobs=new_blobs_full)
+        print(f'Are the two different ways to get the full state equivalent: {new_state==new_state_prime}')
         return state, accepted, new_state
