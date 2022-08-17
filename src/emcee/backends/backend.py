@@ -242,6 +242,9 @@ class Backend(object):
         self.random_state = state.random_state
         self.iteration += 1
         
+        print(f'state_blobs_flag = {state.blobs}') #flag
+        print(f'new_state_blobs_flag = {new_state.blobs}') #flag
+        
         print(f'blobs = {self.blobs}')
         print(f'blobs_full = {self.blobs_full}')
 
