@@ -61,5 +61,8 @@ class MHMove(Move):
         # Update the parameters
         new_state = State(q, log_prob=new_log_probs, blobs=new_blobs)
         state = self.update(state, new_state, accepted)
+        
+        print(f'state_blobs = {state.blobs}') #flag
+        print(f'new_state_blobs = {new_state.blobs}') #flag
 
         return state, accepted, new_state
