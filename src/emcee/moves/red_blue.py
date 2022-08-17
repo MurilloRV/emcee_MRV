@@ -126,9 +126,13 @@ class RedBlueMove(Move):
                     accepted[j] = True
 
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
-            state = self.update(state, new_state_prelim, accepted, S1)
-            
             new_state = self.update(state, new_state_prelim, accepted_full, S1) # this state now contains all walker proposals
+            
+            state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
+            
+        print(f'state_blobs = {state.blobs}') #flag
+        print(f'new_state_blobs = {new_state.blobs}') #flag
+            
         
         #print(f'q_full = {q_full}') #flag
         #print(f'new_state_prime = {new_state_prime.coords}') #flag
