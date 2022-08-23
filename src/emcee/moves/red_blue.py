@@ -130,8 +130,8 @@ class RedBlueMove(Move):
             
             state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
             
-        print(f'state_blobs = {state.blobs}') #flag
-        print(f'new_state_blobs = {new_state.blobs}') #flag
+        #print(f'state_blobs = {state.blobs}') #flag
+        #print(f'new_state_blobs = {new_state.blobs}') #flag
             
         
         #print(f'q_full = {q_full}') #flag
