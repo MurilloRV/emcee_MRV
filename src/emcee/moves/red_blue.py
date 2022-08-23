@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import copy
 
 from ..state import State
 from .move import Move
@@ -126,7 +127,12 @@ class RedBlueMove(Move):
                     accepted[j] = True
 
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
-            old_state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
+            state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
+            
+            old_state_coords = copy.deepcopy(state.coords)
+            old_state_log_prob = copy.deepcopy(state.log_prob)
+            old_state_blobs = copy.deepcopy(state.blobs)
+            old_state = State(old_state_coords, log_prob=old_state_log_prob, blobs=old_state_blobs)
             
             new_state = self.update(state, new_state_prelim, accepted_full, S1) # this state now contains all walker proposals
             # Notice non-intuitive order. Must be so, since the update functions actually changes the value of the original state globaly
