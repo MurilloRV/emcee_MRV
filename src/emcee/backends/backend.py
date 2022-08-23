@@ -220,6 +220,11 @@ class Backend(object):
             )
 
     def save_step(self, state, accepted, new_state):
+        print(f'state_blobs_flag_first = {state.blobs}') #flag
+        print(f'new_state_blobs_flag_first = {new_state.blobs}') #flag
+        
+        print(f'blobs_first = {self.blobs}')
+        print(f'blobs_full_first = {self.blobs_full}')
         """Save a step to the backend
 
         Args:
