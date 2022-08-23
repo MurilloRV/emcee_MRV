@@ -244,8 +244,8 @@ class Backend(object):
             print(f'Iteration: {self.iteration}')
             self.blobs[self.iteration, :] = state.blobs
             self.blobs_full[self.iteration, :] = new_state.blobs
-        print(f'state_blobs_flag_after = {state.blobs}') #flag
-        print(f'new_state_blobs_flag_after = {new_state.blobs}') #flag
+        print(f'blobs_after_it = {self.blobs[self.iteration, :]}')
+        print(f'blobs_full_after_it = {self.blobs_full[self.iteration, :]}')
         
         print(f'blobs_after = {self.blobs}')
         print(f'blobs_full_after = {self.blobs_full}')
