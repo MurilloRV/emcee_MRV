@@ -229,37 +229,19 @@ class Backend(object):
                 or not the proposal for each walker was accepted.
 
         """
-        self._check(state, accepted)
-        self._check(new_state, accepted)
-
-        self.chain[self.iteration, :, :] = state.coords
-        self.chain_full[self.iteration, :, :] = new_state.coords
-        self.log_prob[self.iteration, :] = state.log_prob
-        self.log_prob_full[self.iteration, :] = new_state.log_prob
         if state.blobs is not None:
-            print(f'state_blobs_flag_first = {state.blobs}') #flag
-            print(f'new_state_blobs_flag_first = {new_state.blobs}') #flag
-            
-            print(f'blobs_first = {self.blobs}')
-            print(f'blobs_full_first = {self.blobs_full}')
-            print(f'Iteration: {self.iteration}')
             self.blobs[self.iteration, :] = state.blobs
             self.blobs_full[self.iteration, :] = new_state.blobs
-        print(f'blobs_after_it = {self.blobs[self.iteration, :]}')
-        print(f'blobs_full_after_it = {self.blobs_full[self.iteration, :]}')
-        
-        print(f'blobs_after = {self.blobs}')
-        print(f'blobs_full_after = {self.blobs_full}')
-        
         self.accepted += accepted
         self.random_state = state.random_state
         self.iteration += 1
         
         print(f'state_blobs_flag = {state.blobs}') #flag
         print(f'new_state_blobs_flag = {new_state.blobs}') #flag
+        print(f'accepted = {self.accepted}')
         
-        print(f'blobs = {self.blobs}')
-        print(f'blobs_full = {self.blobs_full}')
+        #print(f'blobs = {self.blobs}')
+        #print(f'blobs_full = {self.blobs_full}')
 
     def __enter__(self):
         return self
