@@ -229,6 +229,10 @@ class Backend(object):
                 or not the proposal for each walker was accepted.
 
         """
+        self.chain[self.iteration, :, :] = state.coords
+        self.chain_full[self.iteration, :, :] = new_state.coords
+        self.log_prob[self.iteration, :] = state.log_prob
+        self.log_prob_full[self.iteration, :] = new_state.log_prob
         if state.blobs is not None:
             self.blobs[self.iteration, :] = state.blobs
             self.blobs_full[self.iteration, :] = new_state.blobs
