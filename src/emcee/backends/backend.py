@@ -185,12 +185,13 @@ class Backend(object):
         if blobs is not None:
             dt = np.dtype((blobs.dtype, blobs.shape[1:]))
             a = np.empty((i, self.nwalkers), dtype=dt)
+            a_full = np.empty((i, self.nwalkers), dtype=dt)
             if self.blobs is None:
                 self.blobs = a
-                self.blobs_full = a
+                self.blobs_full = a_full
             else:
                 self.blobs = np.concatenate((self.blobs, a), axis=0)
-                self.blobs_full = np.concatenate((self.blobs_full, a), axis=0)
+                self.blobs_full = np.concatenate((self.blobs_full, a_full), axis=0)
 
     def _check(self, state, accepted):
         self._check_blobs(state.blobs)
