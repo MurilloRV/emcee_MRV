@@ -156,4 +156,4 @@ class RedBlueMove(Move):
         #print(f'Are the two blobs equivalent: {new_state.blobs==new_state_prime.blobs}') #flag
         #print(f'Are the two random states equivalent: {new_state.random_state==new_state_prime.random_state}') #flag
         
-        return state, accepted, new_state
+        return old_state, accepted, new_state
