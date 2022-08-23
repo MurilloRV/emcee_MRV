@@ -86,6 +86,12 @@ class RedBlueMove(Move):
         #new_log_probs_full = np.empty([nwalkers]) # Too complex
         #new_blobs_full = state.blobs # Too complex
         
+        # Making a copy of the original state
+        old_state_coords = copy.deepcopy(state.coords)
+        old_state_log_prob = copy.deepcopy(state.log_prob)
+        old_state_blobs = copy.deepcopy(state.blobs)
+        old_state = State(old_state_coords, log_prob=old_state_log_prob, blobs=old_state_blobs)
+        
         for split in range(self.nsplits):
             S1 = inds == split
 
@@ -129,12 +135,9 @@ class RedBlueMove(Move):
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
             state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
             
-            old_state_coords = copy.deepcopy(state.coords)
-            old_state_log_prob = copy.deepcopy(state.log_prob)
-            old_state_blobs = copy.deepcopy(state.blobs)
-            old_state = State(old_state_coords, log_prob=old_state_log_prob, blobs=old_state_blobs)
             
-            new_state = self.update(state, new_state_prelim, accepted_full, S1) # this state now contains all walker proposals
+            
+            new_state = self.update(old_state, new_state_prelim, accepted_full, S1) # this state now contains all walker proposals
             # Notice non-intuitive order. Must be so, since the update functions actually changes the value of the original state globaly
             
             
@@ -156,4 +159,4 @@ class RedBlueMove(Move):
         #print(f'Are the two blobs equivalent: {new_state.blobs==new_state_prime.blobs}') #flag
         #print(f'Are the two random states equivalent: {new_state.random_state==new_state_prime.random_state}') #flag
         
-        return old_state, accepted, new_state
+        return state, accepted, new_state
