@@ -240,8 +240,8 @@ class Backend(object):
         self.random_state = state.random_state
         self.iteration += 1
         
-        print(f'state_chain_flag = {state.chain}') #flag
-        print(f'new_state_chain_flag = {new_state.chain}') #flag
+        print(f'state_chain_flag = {state.coords}') #flag
+        print(f'new_state_chain_flag = {new_state.coords}') #flag
         print(f'state_LL_flag = {state.log_prob}') #flag
         print(f'new_state_LL_flag = {new_state.log_prob}') #flag
         print(f'state_blobs_flag = {state.blobs}') #flag
