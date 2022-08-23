@@ -220,11 +220,6 @@ class Backend(object):
             )
 
     def save_step(self, state, accepted, new_state):
-        print(f'state_blobs_flag_first = {state.blobs}') #flag
-        print(f'new_state_blobs_flag_first = {new_state.blobs}') #flag
-        
-        print(f'blobs_first = {self.blobs}')
-        print(f'blobs_full_first = {self.blobs_full}')
         """Save a step to the backend
 
         Args:
@@ -241,8 +236,20 @@ class Backend(object):
         self.log_prob[self.iteration, :] = state.log_prob
         self.log_prob_full[self.iteration, :] = new_state.log_prob
         if state.blobs is not None:
+            print(f'state_blobs_flag_first = {state.blobs}') #flag
+            print(f'new_state_blobs_flag_first = {new_state.blobs}') #flag
+            
+            print(f'blobs_first = {self.blobs}')
+            print(f'blobs_full_first = {self.blobs_full}')
+            print(f'Iteration: {self.iteration}')
             self.blobs[self.iteration, :] = state.blobs
             self.blobs_full[self.iteration, :] = new_state.blobs
+        print(f'state_blobs_flag_after = {state.blobs}') #flag
+        print(f'new_state_blobs_flag_after = {new_state.blobs}') #flag
+        
+        print(f'blobs_after = {self.blobs}')
+        print(f'blobs_full_after = {self.blobs_full}')
+        
         self.accepted += accepted
         self.random_state = state.random_state
         self.iteration += 1
