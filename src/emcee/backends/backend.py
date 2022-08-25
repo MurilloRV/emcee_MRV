@@ -240,16 +240,16 @@ class Backend(object):
         self.random_state = state.random_state
         self.iteration += 1
         
-        print(f'state_chain_flag = {state.coords}') #flag
-        print(f'new_state_chain_flag = {new_state.coords}') #flag
-        print(f'state_LL_flag = {state.log_prob}') #flag
-        print(f'new_state_LL_flag = {new_state.log_prob}') #flag
-        print(f'state_blobs_flag = {state.blobs}') #flag
-        print(f'new_state_blobs_flag = {new_state.blobs}') #flag
-        print(f'accepted = {self.accepted}')
+        #print(f'state_chain_flag = {state.coords}') #flag
+        #print(f'new_state_chain_flag = {new_state.coords}') #flag
+        #print(f'state_LL_flag = {state.log_prob}') #flag
+        #print(f'new_state_LL_flag = {new_state.log_prob}') #flag
+        #print(f'state_blobs_flag = {state.blobs}') #flag
+        #print(f'new_state_blobs_flag = {new_state.blobs}') #flag
+        #print(f'accepted = {self.accepted}') #flag
         
-        #print(f'blobs = {self.blobs}')
-        #print(f'blobs_full = {self.blobs_full}')
+        #print(f'blobs = {self.blobs}') #flag
+        #print(f'blobs_full = {self.blobs_full}') #flag
 
     def __enter__(self):
         return self
