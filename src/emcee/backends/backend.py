@@ -28,22 +28,24 @@ class Backend(object):
         self.nwalkers = int(nwalkers)
         self.ndim = int(ndim)
         self.iteration = 0
+        self.am_iteration = 0
         self.accepted = np.zeros(self.nwalkers, dtype=self.dtype)
-        self.chain = np.empty((0, self.nwalkers, self.ndim), dtype=self.dtype)
+        self.chain      = np.empty((0, self.nwalkers, self.ndim), dtype=self.dtype)
         self.chain_full = np.empty((0, self.nwalkers, self.ndim), dtype=self.dtype)
-        self.log_prob = np.empty((0, self.nwalkers), dtype=self.dtype)
+        self.log_prob      = np.empty((0, self.nwalkers), dtype=self.dtype)
         self.log_prob_full = np.empty((0, self.nwalkers), dtype=self.dtype)
-        self.blobs = None
+        self.blobs      = None
         self.blobs_full = None
         self.random_state = None
         self.initialized = True
+        self.move_ids = np.empty((0,), dtype=int) # Saves which move was used at each iteration
         # _full variables include all proposed values for the walkers, not just accepted ones
 
     def has_blobs(self):
         """Returns ``True`` if the model includes blobs"""
         return self.blobs is not None
 
-    def get_value(self, name, flat=False, thin=1, discard=0):
+    def get_value(self, name, flat=False, thin=1, discard=0, full=False):
         if self.iteration <= 0:
             raise AttributeError(
                 "you must run the sampler with "
@@ -51,8 +53,23 @@ class Backend(object):
                 "results"
             )
 
-        if name == "blobs" and not self.has_blobs():
+        if name in {"blobs", "blobs_full"} and not self.has_blobs():
             return None
+        
+        if name == "move_ids" and flat == True:
+            raise TypeError(
+                "The `flat` option is not valid for the "
+                "move indices"
+            )
+
+        if full==True:
+            if name == "move_ids": 
+                raise TypeError(
+                "The `full` option is not valid for the "
+                "move indices"
+            )
+            else:
+                name += "_full"
 
         v = getattr(self, name)[discard + thin - 1 : self.iteration : thin]
         if flat:
@@ -71,6 +88,8 @@ class Backend(object):
                 chain. (default: ``1``)
             discard (Optional[int]): Discard the first ``discard`` steps in
                 the chain as burn-in. (default: ``0``)
+            full (Optional[bool]): Obtain the full chain, including points which
+                were discarded
 
         Returns:
             array[..., nwalkers, ndim]: The MCMC samples.
@@ -88,6 +107,8 @@ class Backend(object):
                 chain. (default: ``1``)
             discard (Optional[int]): Discard the first ``discard`` steps in
                 the chain as burn-in. (default: ``0``)
+            full (Optional[bool]): Obtain the full chain, including points which
+                were discarded
 
         Returns:
             array[..., nwalkers]: The chain of blobs.
@@ -105,12 +126,29 @@ class Backend(object):
                 chain. (default: ``1``)
             discard (Optional[int]): Discard the first ``discard`` steps in
                 the chain as burn-in. (default: ``0``)
+            full (Optional[bool]): Obtain the full chain, including points which
+                were discarded
 
         Returns:
             array[..., nwalkers]: The chain of log probabilities.
 
         """
         return self.get_value("log_prob", **kwargs)
+    
+    def get_move_ids(self, **kwargs):
+        """Get the indices of the moves used at each step
+
+        Args:
+            thin (Optional[int]): Take only every ``thin`` steps from the
+                chain. (default: ``1``)
+            discard (Optional[int]): Discard the first ``discard`` steps in
+                the chain as burn-in. (default: ``0``)
+
+        Returns:
+            array[...]: The indices of the moves.
+
+        """
+        return self.get_value("move_ids", **kwargs)
 
     def get_last_sample(self):
         """Access the most recent sample in the chain"""
@@ -193,6 +231,9 @@ class Backend(object):
                 self.blobs = np.concatenate((self.blobs, a), axis=0)
                 self.blobs_full = np.concatenate((self.blobs_full, a_full), axis=0)
 
+        a = np.empty((i,), dtype=int)
+        self.move_ids = np.concatenate((self.move_ids, a))
+
     def _check(self, state, accepted):
         self._check_blobs(state.blobs)
         nwalkers, ndim = self.shape
@@ -220,7 +261,7 @@ class Backend(object):
                 "invalid acceptance size; expected {0}".format(nwalkers)
             )
 
-    def save_step(self, state, accepted, new_state):
+    def save_step(self, state, accepted, full_state, move_id, is_move_am):
         """Save a step to the backend
 
         Args:
@@ -229,27 +270,19 @@ class Backend(object):
                 or not the proposal for each walker was accepted.
 
         """
-        self.chain[self.iteration, :, :] = state.coords
-        self.chain_full[self.iteration, :, :] = new_state.coords
-        self.log_prob[self.iteration, :] = state.log_prob
-        self.log_prob_full[self.iteration, :] = new_state.log_prob
+        self.chain     [self.iteration, :, :] = state.coords
+        self.chain_full[self.iteration, :, :] = full_state.coords
+        self.log_prob     [self.iteration, :] = state.log_prob
+        self.log_prob_full[self.iteration, :] = full_state.log_prob
         if state.blobs is not None:
-            self.blobs[self.iteration, :] = state.blobs
-            self.blobs_full[self.iteration, :] = new_state.blobs
+            self.blobs     [self.iteration, :] = state.blobs
+            self.blobs_full[self.iteration, :] = full_state.blobs
+        self.move_ids[self.iteration] = move_id
         self.accepted += accepted
         self.random_state = state.random_state
         self.iteration += 1
+        if is_move_am: self.am_iteration += 1
         
-        #print(f'state_chain_flag = {state.coords}') #flag
-        #print(f'new_state_chain_flag = {new_state.coords}') #flag
-        #print(f'state_LL_flag = {state.log_prob}') #flag
-        #print(f'new_state_LL_flag = {new_state.log_prob}') #flag
-        #print(f'state_blobs_flag = {state.blobs}') #flag
-        #print(f'new_state_blobs_flag = {new_state.blobs}') #flag
-        #print(f'accepted = {self.accepted}') #flag
-        
-        #print(f'blobs = {self.blobs}') #flag
-        #print(f'blobs_full = {self.blobs_full}') #flag
 
     def __enter__(self):
         return self

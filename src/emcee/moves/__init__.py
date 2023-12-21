@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .adaptive_met import AdaptiveMetropolisMove
 from .de import DEMove
 from .de_snooker import DESnookerMove
 from .gaussian import GaussianMove
@@ -20,4 +21,5 @@ __all__ = [
     "KDEMove",
     "DEMove",
     "DESnookerMove",
+    "AdaptiveMetropolisMove",
 ]

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import copy
 
 from ..state import State
 from .move import Move
@@ -75,22 +74,14 @@ class RedBlueMove(Move):
 
         # Split the ensemble in half and iterate over these two halves.
         accepted = np.zeros(nwalkers, dtype=bool)
-        accepted_full = np.ones(nwalkers, dtype=bool) #boolean vector, where all walkers are accepted
+        accepted_full = np.ones(nwalkers, dtype=bool) # Boolean vector, where all walkers are accepted
         all_inds = np.arange(nwalkers)
         inds = all_inds % self.nsplits
         if self.randomize_split:
             model.random.shuffle(inds)
-            
-        # Initializing the variables which will contain the full state information, without discarding proposals
-        #q_full = np.empty([nwalkers, ndim]) # Too complex
-        #new_log_probs_full = np.empty([nwalkers]) # Too complex
-        #new_blobs_full = state.blobs # Too complex
         
-        # Making a copy of the original state
-        old_state_coords = copy.deepcopy(state.coords)
-        old_state_log_prob = copy.deepcopy(state.log_prob)
-        old_state_blobs = copy.deepcopy(state.blobs)
-        old_state = State(old_state_coords, log_prob=old_state_log_prob, blobs=old_state_blobs)
+        
+        old_state = State(state, copy=True)
         
         for split in range(self.nsplits):
             S1 = inds == split
@@ -102,27 +93,9 @@ class RedBlueMove(Move):
 
             # Get the move-specific proposal.
             q, factors = self.get_proposal(s, c, model.random)
-            #print(f'q = {q}, factors = {factors}') #flag
-            #print(f'type of q = {type(q)}') #flag
-            #print(f'shape of q = {q.shape}') #flag
-            
-            
-            #q_full[S1, :] = q  # Too complex
 
             # Compute the lnprobs of the proposed position.
-            new_log_probs, new_blobs = model.compute_log_prob_fn(q)
-            
-            #print(f'type of new_log_probs = {type(new_log_probs)}') #flag
-            #print(f'shape of new_log_probs = {new_log_probs.shape}') #flag
-            #print(f'type of new_blobs = {type(new_blobs)}') #flag
-            #print(f'shape of new_blobs = {new_blobs.shape}') #flag
-            #print(f'blobs = {new_blobs}') #flag
-            
-            #new_log_probs_full[S1] = new_log_probs # Too complex
-            #new_blobs_full[S1] = new_blobs # Too complex
-            
-            
-            
+            new_log_probs, new_blobs = model.compute_log_prob_fn(q)            
 
             # Loop over the walkers and update them accordingly.
             for i, (j, f, nlp) in enumerate(
@@ -134,29 +107,7 @@ class RedBlueMove(Move):
 
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
             state = self.update(state, new_state_prelim, accepted, S1) # contains only accepted walker changes
-            
-            
-            
+
             new_state = self.update(old_state, new_state_prelim, accepted_full, S1) # this state now contains all walker proposals
-            # Notice non-intuitive order. Must be so, since the update functions actually changes the value of the original state globaly
-            
-            
-        #print(f'state_blobs = {state.blobs}') #flag
-        #print(f'new_state_blobs = {new_state.blobs}') #flag
-            
-        
-        #print(f'q_full = {q_full}') #flag
-        #print(f'new_state_prime = {new_state_prime.coords}') #flag
-        #print(f'new_log_probs_full = {new_log_probs_full}') #flag
-        #print(f'new_state_prime_log = {new_state_prime.log_prob}') #flag
-        #print(f'new_blobs_full = {new_blobs_full}') #flag
-        #print(f'new_state_prime_blobs = {new_state_prime.blobs}') #flag
-        
-        #new_state_prime = State(q_full, log_prob=new_log_probs_full, blobs=new_blobs_full) # Too complex
-        #print(f'Are the two different ways to get the full state equivalent: {new_state==new_state_prime}') #flag
-        #print(f'Are the two q equivalent: {new_state.coords==new_state_prime.coords}') #flag
-        #print(f'Are the two LLI equivalent: {new_state.log_prob==new_state_prime.log_prob}') #flag
-        #print(f'Are the two blobs equivalent: {new_state.blobs==new_state_prime.blobs}') #flag
-        #print(f'Are the two random states equivalent: {new_state.random_state==new_state_prime.random_state}') #flag
-        
+               
         return state, accepted, new_state

@@ -23,12 +23,19 @@ class State(object):
             position. The value is only returned if lnpostfn returns blobs too.
         random_state (Optional): The current state of the random number
             generator.
+
+        New functionality:
+        C_t (Optional): Stores the current covariance matrix, to be used in the
+        following adaptive Metropolis step
+        Xbar_t (Optional): Stores the current sample average, to be used in
+            the adaptive Metropolis algorithm.
     """
 
-    __slots__ = "coords", "log_prob", "blobs", "random_state"
+    __slots__ = "coords", "log_prob", "blobs", "random_state", "C_t", "Xbar_t"
 
     def __init__(
-        self, coords, log_prob=None, blobs=None, random_state=None, copy=False
+        self, coords, log_prob=None, blobs=None, random_state=None, copy=False,
+        C_t=None, Xbar_t=None
     ):
         dc = deepcopy if copy else lambda x: x
 
@@ -37,12 +44,16 @@ class State(object):
             self.log_prob = dc(coords.log_prob)
             self.blobs = dc(coords.blobs)
             self.random_state = dc(coords.random_state)
+            self.C_t = dc(coords.C_t)
+            self.Xbar_t = dc(coords.Xbar_t)
             return
 
         self.coords = dc(np.atleast_2d(coords))
         self.log_prob = dc(log_prob)
         self.blobs = dc(blobs)
         self.random_state = dc(random_state)
+        self.C_t = dc(C_t)
+        self.Xbar_t = dc(Xbar_t)
 
     def __len__(self):
         if self.blobs is None:
@@ -50,8 +61,8 @@ class State(object):
         return 4
 
     def __repr__(self):
-        return "State({0}, log_prob={1}, blobs={2}, random_state={3})".format(
-            self.coords, self.log_prob, self.blobs, self.random_state
+        return "State({0}, log_prob={1}, blobs={2}, random_state={3}, C_t={4}, Xbar_t={5})".format(
+            self.coords, self.log_prob, self.blobs, self.random_state, self.C_t, self.Xbar_t
         )
 
     def __iter__(self):
@@ -72,4 +83,8 @@ class State(object):
             return self.random_state
         elif index == 3 and self.blobs is not None:
             return self.blobs
+        elif index == 4 and self.C_t is not None:
+            return self.C_t
+        elif index == 5 and self.Xbar_t is not None:
+            return self.Xbar_t
         raise IndexError("Invalid index '{0}'".format(index))

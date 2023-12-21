@@ -3,12 +3,13 @@
 import warnings
 from itertools import count
 from typing import Dict, List, Optional, Union
+from copy import deepcopy
 
 import numpy as np
 
 from .backends import Backend
 from .model import Model
-from .moves import StretchMove
+from .moves import StretchMove, AdaptiveMetropolisMove
 from .pbar import get_progress_bar
 from .state import State
 from .utils import deprecated, deprecation_warning
@@ -179,7 +180,7 @@ class EnsembleSampler(object):
                 if name not in dupes:
                     uniq.append(name)
                     dupes.add(name)
-            msg = f"duplicate paramters: {dupes}"
+            msg = f"duplicate parameters: {dupes}"
             assert len(uniq) == len(parameter_names), msg
 
             if isinstance(parameter_names, list):
@@ -396,10 +397,16 @@ class EnsembleSampler(object):
             for _ in count() if iterations is None else range(iterations):
                 for _ in range(yield_step):
                     # Choose a random move
-                    move = self._random.choice(self._moves, p=self._weights)
+                    move_id = self._random.choice(range(len(self._moves)), p=self._weights)
+                    move = self._moves[move_id]
+                    is_move_am = isinstance(move, AdaptiveMetropolisMove)
+
+                    # Make copy of current state
+                    old_state = State(state, copy=True)
 
                     # Propose
-                    state, accepted, new_state = move.propose(model, state)
+                    state, accepted, full_state = move.propose(model, state)
+                    state = self.update_AM_parameters(old_state, state, move)
                     state.random_state = self.random_state
 
                     if tune:
@@ -407,11 +414,9 @@ class EnsembleSampler(object):
 
                     # Save the new step
                     if store and (i + 1) % checkpoint_step == 0:
-                        #print(f'Shape of new_state: {new_state.coords.shape}') #Flag
-                        #print(f'state_blobs_flag = {state.blobs}') #flag
-                        #print(f'new_state_blobs_flag = {new_state.blobs}') #flag
-                        self.backend.save_step(state, accepted, new_state)
-                        # Now sending the new/full state to the save_step function in the backend, to save the full chain
+                        self.backend.save_step(state, accepted, full_state, move_id, is_move_am)
+                        # Now sending the new/full state to the save_step function in the backend, 
+                        # to save the full chain
 
                     pbar.update(1)
                     i += 1
@@ -582,18 +587,10 @@ class EnsembleSampler(object):
     def acor(self):  # pragma: no cover
         return self.get_autocorr_time()
     
-    def get_chain_full(self, **kwargs):
-        """ New command to get the full chain """
-        return self.get_value("chain_full", **kwargs)
-    
     def get_chain(self, **kwargs):
         return self.get_value("chain", **kwargs)
 
     get_chain.__doc__ = Backend.get_chain.__doc__
-
-    def get_blobs_full(self, **kwargs):
-        """ New command to get the blobs from the full chain """
-        return self.get_value("blobs_full", **kwargs)
     
     def get_blobs(self, **kwargs):
         return self.get_value("blobs", **kwargs)
@@ -603,11 +600,42 @@ class EnsembleSampler(object):
     def get_log_prob(self, **kwargs):
         return self.get_value("log_prob", **kwargs)
     
-    def get_log_prob_full(self, **kwargs):
-        """ New command to get the log-likelihoods from the full chain """
-        return self.get_value("log_prob_full", **kwargs)
-
     get_log_prob.__doc__ = Backend.get_log_prob.__doc__
+
+    def get_move_ids(self, **kwargs):
+        return self.get_value("move_ids", **kwargs)
+    
+    get_move_ids.__doc__ = Backend.get_move_ids.__doc__
+
+    def get_am_chain(self, **kwargs):
+        """
+        Get the chain, but only the points obtained through an Adaptive
+        Metropolis step
+
+        Args:
+            flat (Optional[bool]): Flatten the chain across the ensemble.
+                (default: ``False``)
+            thin (Optional[int]): Take only every ``thin`` steps from the
+                chain. (default: ``1``)
+            discard (Optional[int]): Discard the first ``discard`` steps in
+                the chain as burn-in. (default: ``0``)
+            full (Optional[bool]): Obtain the full chain, including points which
+                were discarded
+
+        Returns:
+            array[..., nwalkers, ndim]: The adaptive Metropolis MCMC samples.
+        """
+
+        sample = self.get_chain(**kwargs)
+        kwargs["flat"] = False # The move indices cannot be flattened
+        move_ids = self.get_move_ids(**kwargs)
+
+        iterations = len(move_ids)
+        is_move_am = np.full((iterations,), False)
+        for i, move_id in enumerate(move_ids):
+            if isinstance(self._moves[move_id], AdaptiveMetropolisMove):
+                is_move_am[i] = True
+        return sample[is_move_am]
 
     def get_last_sample(self, **kwargs):
         return self.backend.get_last_sample()
@@ -621,6 +649,67 @@ class EnsembleSampler(object):
         return self.backend.get_autocorr_time(**kwargs)
 
     get_autocorr_time.__doc__ = Backend.get_autocorr_time.__doc__
+
+
+    def update_AM_parameters(self, old_state, new_state, move):
+
+        # Check if any of the selected moves is the Adaptive Metropolis one
+        am_move = [mv for mv in self._moves if isinstance(mv, AdaptiveMetropolisMove)]
+        if not am_move:
+            return new_state
+        
+        # Save parameters of the AM move and deal with initial iteration
+        am_move = am_move[0]
+        C0 = am_move.C0
+        t0 = am_move.t0
+        epsilon = am_move.epsilon
+        Sd = am_move.Sd
+        ndim = am_move.ndim
+        if self.backend.iteration == 0:
+            new_state.C_t = np.full((self.nwalkers, self.ndim, self.ndim), C0)
+            new_state.Xbar_t = deepcopy(new_state.coords)
+            return new_state
+
+        if am_move.update_all == False and not isinstance(move, AdaptiveMetropolisMove):
+            return new_state
+
+       
+
+        # Update the average Xbar_t
+        t = self.backend.iteration if am_move.update_all else self.backend.am_iteration
+        new_state.Xbar_t = (t * (old_state.Xbar_t) + new_state.coords) / float(t+1)
+
+        # Update the covariance matrix C_t
+        new_C_t = old_state.C_t
+        if t < t0:
+            new_C_t = np.full((self.nwalkers, self.ndim, self.ndim), C0)
+        
+        elif t == t0:
+            st = new_state.coords
+            sample = self.get_chain() if am_move.update_all == True else self.get_am_chain()
+            # The current state must be added manually since it has not yet been 
+            # saved in the backend
+            sample = np.append(sample, st.reshape(1, *st.shape), axis=0)
+
+            for w in range(self.nwalkers):
+                cov_t = np.cov(sample[:, w, :], rowvar=False)
+                new_C_t[w] = Sd * cov_t + Sd * epsilon * np.identity(ndim)
+
+        else:
+            for w in range(self.nwalkers):
+                Xbar_t = old_state.Xbar_t[w]
+                new_Xbar_t = new_state.Xbar_t[w]
+                X_n = new_state.coords[w]
+
+                new_C_t[w] = float(t-1)/t * old_state.C_t[w] + \
+                             Sd/t * (t * np.outer(Xbar_t, Xbar_t)
+                                    - (t+1) * np.outer(new_Xbar_t, new_Xbar_t)
+                                    + np.outer(X_n, X_n)
+                                    + epsilon * np.identity(ndim)
+                                    )
+                
+        new_state.C_t = new_C_t
+        return new_state
 
 
 class _FunctionWrapper(object):
