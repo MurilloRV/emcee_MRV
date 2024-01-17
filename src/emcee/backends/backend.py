@@ -4,6 +4,7 @@ import numpy as np
 
 from .. import autocorr
 from ..state import State
+from ..moves import AdaptiveMetropolisMove
 
 __all__ = ["Backend"]
 
@@ -56,20 +57,13 @@ class Backend(object):
         if name in {"blobs", "blobs_full"} and not self.has_blobs():
             return None
         
-        if name == "move_ids" and flat == True:
+        if name == "move_ids" and (flat==True or full==True):
             raise TypeError(
-                "The `flat` option is not valid for the "
-                "move indices"
+                "'move indices' does not support the 'flat' nor the 'full' options" 
             )
 
         if full==True:
-            if name == "move_ids": 
-                raise TypeError(
-                "The `full` option is not valid for the "
-                "move indices"
-            )
-            else:
-                name += "_full"
+            name += "_full"
 
         v = getattr(self, name)[discard + thin - 1 : self.iteration : thin]
         if flat:

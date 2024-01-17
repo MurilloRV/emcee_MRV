@@ -9,6 +9,8 @@ import numpy as np
 
 from .. import __version__
 from .backend import Backend
+from ..moves import AdaptiveMetropolisMove
+
 
 __all__ = ["HDFBackend", "TempHDFBackend", "does_hdf5_support_longdouble"]
 
@@ -120,6 +122,7 @@ class HDFBackend(Backend):
             g.attrs["ndim"] = ndim
             g.attrs["has_blobs"] = False
             g.attrs["iteration"] = 0
+            g.attrs["am_iteration"] = 0
             g.create_dataset(
                 "accepted",
                 data=np.zeros(nwalkers),
@@ -135,6 +138,14 @@ class HDFBackend(Backend):
                 compression_opts=self.compression_opts,
             )
             g.create_dataset(
+                "chain_full",
+                (0, nwalkers, ndim),
+                maxshape=(None, nwalkers, ndim),
+                dtype=self.dtype,
+                compression=self.compression,
+                compression_opts=self.compression_opts,
+            )
+            g.create_dataset(
                 "log_prob",
                 (0, nwalkers),
                 maxshape=(None, nwalkers),
@@ -142,12 +153,29 @@ class HDFBackend(Backend):
                 compression=self.compression,
                 compression_opts=self.compression_opts,
             )
+            g.create_dataset(
+                "log_prob_full",
+                (0, nwalkers),
+                maxshape=(None, nwalkers),
+                dtype=self.dtype,
+                compression=self.compression,
+                compression_opts=self.compression_opts,
+            )
+            g.create_dataset(
+                "move_ids",
+                (0,),
+                maxshape=(None,),
+                dtype=self.dtype,
+                compression=self.compression,
+                compression_opts=self.compression_opts,
+            ) # Saves which move was used at each iteration
+            # '_full' variables include all proposed values for the walkers, not just accepted ones
 
     def has_blobs(self):
         with self.open() as f:
             return f[self.name].attrs["has_blobs"]
 
-    def get_value(self, name, flat=False, thin=1, discard=0):
+    def get_value(self, name, flat=False, thin=1, discard=0, full=False):
         if not self.initialized:
             raise AttributeError(
                 "You must run the sampler with "
@@ -164,8 +192,16 @@ class HDFBackend(Backend):
                     "results"
                 )
 
-            if name == "blobs" and not g.attrs["has_blobs"]:
+            if name in {"blobs", "blobs_full"} and not g.attrs["has_blobs"]:
                 return None
+            
+            if name == "move_ids" and (flat==True or full==True):
+                raise TypeError(
+                    "'move indices' does not support the 'flat' nor the 'full' options" 
+                )
+
+            if full==True:
+                name += "_full"
 
             v = g[name][discard + thin - 1 : self.iteration : thin]
             if flat:
@@ -184,6 +220,11 @@ class HDFBackend(Backend):
     def iteration(self):
         with self.open() as f:
             return f[self.name].attrs["iteration"]
+        
+    @property
+    def am_iteration(self):
+        with self.open() as f:
+            return f[self.name].attrs["am_iteration"]
 
     @property
     def accepted(self):
@@ -215,7 +256,9 @@ class HDFBackend(Backend):
             g = f[self.name]
             ntot = g.attrs["iteration"] + ngrow
             g["chain"].resize(ntot, axis=0)
+            g["chain_full"].resize(ntot, axis=0)
             g["log_prob"].resize(ntot, axis=0)
+            g["log_prob_full"].resize(ntot, axis=0)
             if blobs is not None:
                 has_blobs = g.attrs["has_blobs"]
                 if not has_blobs:
@@ -229,8 +272,17 @@ class HDFBackend(Backend):
                         compression=self.compression,
                         compression_opts=self.compression_opts,
                     )
+                    g.create_dataset(
+                        "blobs_full",
+                        (ntot, nwalkers),
+                        maxshape=(None, nwalkers),
+                        dtype=dt,
+                        compression=self.compression,
+                        compression_opts=self.compression_opts,
+                    )
                 else:
                     g["blobs"].resize(ntot, axis=0)
+                    g["blobs_full"].resize(ntot, axis=0)
                     if g["blobs"].dtype.shape != blobs.shape[1:]:
                         raise ValueError(
                             "Existing blobs have shape {} but new blobs "
@@ -240,7 +292,9 @@ class HDFBackend(Backend):
                         )
                 g.attrs["has_blobs"] = True
 
-    def save_step(self, state, accepted):
+            g["move_ids"].resize(ntot, axis=0)
+
+    def save_step(self, state, accepted, full_state, move_id, is_move_am):
         """Save a step to the backend
 
         Args:
@@ -254,17 +308,24 @@ class HDFBackend(Backend):
         with self.open("a") as f:
             g = f[self.name]
             iteration = g.attrs["iteration"]
+            am_iteration = g.attrs["am_iteration"]
 
-            g["chain"][iteration, :, :] = state.coords
-            g["log_prob"][iteration, :] = state.log_prob
+            g["chain"][iteration, :, :]      = state.coords
+            g["chain_full"][iteration, :, :] = full_state.coords
+            g["log_prob"][iteration, :]      = state.log_prob
+            g["log_prob_full"][iteration, :] = full_state.log_prob
             if state.blobs is not None:
-                g["blobs"][iteration, :] = state.blobs
+                g["blobs"][iteration, :]      = state.blobs
+                g["blobs_full"][iteration, :] = full_state.blobs
             g["accepted"][:] += accepted
 
             for i, v in enumerate(state.random_state):
                 g.attrs["random_state_{0}".format(i)] = v
 
+            g["move_ids"][iteration] = move_id
+
             g.attrs["iteration"] = iteration + 1
+            if is_move_am: g.attrs["am_iteration"] = am_iteration + 1
 
 
 class TempHDFBackend(object):
