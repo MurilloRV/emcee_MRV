@@ -32,12 +32,16 @@ class AdaptiveMetropolisMove(Move):
         update_all (Optional[bool]): If `True`, the covariance matrix will be
             updated using all points in the sample. If `False`, the matrix is
             only updated using AM move points.
+        method (str): Option passed to the 'numpy.random.Generator.multivariate_normal'
+            function, used to select the method by which the covariance matrix 'cov'
+            is decomposed in 'A @ A.T = cov'. Can only by used if the EmsembleSampler`s
+            random number generator is an instance of np.random.Generator.
 
 
     """
 
     def __init__(
-            self, ndim, C0, epsilon, Sd=None, t0=1, update_all=False
+            self, ndim, C0, epsilon, Sd=None, t0=1, update_all=False, method=None
         ):
 
         if Sd is None: Sd = ((2.4)**2)/float(ndim)
@@ -52,13 +56,23 @@ class AdaptiveMetropolisMove(Move):
         self.t0 = t0
         self.epsilon = epsilon
         self.update_all = update_all
+        self.method = method
 
     def get_proposal(self, x0, C_t, random):
         
         nwalkers, ndim = x0.shape
-        return np.array([x0[i] + random.multivariate_normal(np.zeros(len(C_t[i])), C_t[i]) 
+        if isinstance(random, np.random.Generator):
+            return np.array([x0[i] + random.multivariate_normal(np.zeros(len(C_t[i])), C_t[i], method=self.method) 
                             for i in range(nwalkers)]
                             )
+        else:
+            if self.method != None:
+                raise ValueError("The 'method' option cannot be used unless the EmsembleSampler`s \
+                                 random number generator is an instance of np.random.Generator.")
+            return np.array([x0[i] + random.multivariate_normal(np.zeros(len(C_t[i])), C_t[i]) 
+                            for i in range(nwalkers)]
+                            )
+        
 
     def propose(self, model, state):
 
@@ -79,7 +93,7 @@ class AdaptiveMetropolisMove(Move):
 
         # Loop over the walkers and update them accordingly.
         lnpdiff = new_log_probs - state.log_prob
-        accepted = np.log(model.random.rand(nwalkers)) < lnpdiff
+        accepted = np.log(model.random.uniform(size=nwalkers)) < lnpdiff
 
         # Update the parameters
         new_state = State(q, log_prob=new_log_probs, blobs=new_blobs, C_t=state.C_t, Xbar_t=state.Xbar_t)

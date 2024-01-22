@@ -102,7 +102,7 @@ class RedBlueMove(Move):
                 zip(all_inds[S1], factors, new_log_probs)
             ):
                 lnpdiff = f + nlp - state.log_prob[j]
-                if lnpdiff > np.log(model.random.rand()):
+                if lnpdiff > np.log(model.random.uniform()):
                     accepted[j] = True
 
             new_state_prelim = State(q, log_prob=new_log_probs, blobs=new_blobs)
