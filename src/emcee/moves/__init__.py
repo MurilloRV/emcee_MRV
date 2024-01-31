@@ -9,6 +9,7 @@ from .mh import MHMove
 from .move import Move
 from .red_blue import RedBlueMove
 from .stretch import StretchMove
+from .stretch_modified import ModifiedStretchMove
 from .walk import WalkMove
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "DEMove",
     "DESnookerMove",
     "AdaptiveMetropolisMove",
+    "ModifiedStretchMove",
 ]
